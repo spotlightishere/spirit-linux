@@ -8,15 +8,15 @@
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA 
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 #include <time.h>
@@ -140,8 +140,8 @@ static void send_files_thread() {
 	if(lockdownd_error != LOCKDOWN_E_SUCCESS) {
 		fprintf(stderr, "ERROR: Cannot create lockdownd client\n");
 	}
-	
-	uint16_t port = 0;
+
+	lockdownd_service_descriptor_t port = 0;
 	afc_client_t afc = NULL;
 	printf("INFO: Starting AFC service\n");
 
@@ -157,7 +157,7 @@ static void send_files_thread() {
 		return;
 	}
 	printf("INFO: Sending files via AFC.");
-	
+
 	plist_t node = NULL;
 	char* product_type = NULL;
 	char* product_version = NULL;
@@ -170,8 +170,8 @@ static void send_files_thread() {
 	plist_get_string_val(node, &product_version);
 	plist_free(node);
 	node = NULL;
-	
-	if(lockdownd) { 
+
+	if(lockdownd) {
 		lockdownd_client_free(lockdownd);
 		lockdownd = NULL;
 	}
@@ -180,7 +180,7 @@ static void send_files_thread() {
 	memset(product, '\0', 512);
 	snprintf(product, 512, "%s_%s", product_type, product_version);
 	printf("INFO: Found version %s\n", product);
-	
+
 	uint64_t size = 0;
 	char* map_data = read_file("igor/map.plist", &size);
 	if(map_data == NULL) {
@@ -188,7 +188,7 @@ static void send_files_thread() {
 		afc_client_free(afc);
 		return;
 	}
-	
+
 	plist_t map = NULL;
 	plist_from_xml(map_data, size, &map);
 	plist_t one_dylib_node = plist_dict_get_item(map, product);
@@ -197,7 +197,7 @@ static void send_files_thread() {
 		afc_client_free(afc);
 		return;
 	}
-	
+
 	char* one_dylib = NULL;
 	plist_get_string_val(one_dylib_node, &one_dylib);
 
@@ -215,38 +215,38 @@ static void send_files_thread() {
 
 
 	printf("INFO: Sending files complete\n");
-	
+
 	plist_free(map);
 	afc_client_free(afc);
 }
 
 static void start_restore(mobilebackup_client_t backup, plist_t files) {
-	char* uuid = NULL;
-	idevice_get_uuid(device, &uuid);
+	char* udid = NULL;
+	idevice_get_udid(device, &udid);
 	printf("DEBUG: start_restore\n");
 	plist_t m1dict = plist_new_dict();
-	plist_dict_insert_item(m1dict, "Version", plist_new_string("6.2"));
-	plist_dict_insert_item(m1dict, "DeviceId", plist_new_string(uuid));
-	plist_dict_insert_item(m1dict, "Applications", plist_new_dict());
-	plist_dict_insert_item(m1dict, "Files", files);
+	plist_dict_set_item(m1dict, "Version", plist_new_string("6.2"));
+	plist_dict_set_item(m1dict, "DeviceId", plist_new_string(udid));
+	plist_dict_set_item(m1dict, "Applications", plist_new_dict());
+	plist_dict_set_item(m1dict, "Files", files);
 
 	uint32_t m1size = 0;
 	char* m1data = NULL;
 	plist_to_bin(m1dict, &m1data, &m1size);
 
 	plist_t manifest = plist_new_dict();
-	plist_dict_insert_item(manifest, "Version", plist_new_string("2.0"));
-	plist_dict_insert_item(manifest, "AuthSignature", plist_new_data(sha1_of_data(m1data, m1size), 20));
-	plist_dict_insert_item(manifest, "IsEncrypted", plist_new_uint(0));
-	plist_dict_insert_item(manifest, "Data", plist_new_data(m1data, m1size));
+	plist_dict_set_item(manifest, "Version", plist_new_string("2.0"));
+	plist_dict_set_item(manifest, "AuthSignature", plist_new_data(sha1_of_data(m1data, m1size), 20));
+	plist_dict_set_item(manifest, "IsEncrypted", plist_new_uint(0));
+	plist_dict_set_item(manifest, "Data", plist_new_data(m1data, m1size));
 
 	plist_t mdict = plist_new_dict();
-	plist_dict_insert_item(mdict, "BackupMessageTypeKey", plist_new_string("kBackupMessageRestoreRequest"));
-	plist_dict_insert_item(mdict, "BackupNotifySpringBoard", plist_new_bool(1));
-	plist_dict_insert_item(mdict, "BackupProtocolVersion", plist_new_string("3.0"));
-	plist_dict_insert_item(mdict, "BackupPreserveCameraRoll", plist_new_bool(1));
-	plist_dict_insert_item(mdict, "BackupPreserveSettings", plist_new_bool(1));
-	plist_dict_insert_item(mdict, "BackupManifestKey", manifest);
+	plist_dict_set_item(mdict, "BackupMessageTypeKey", plist_new_string("kBackupMessageRestoreRequest"));
+	plist_dict_set_item(mdict, "BackupNotifySpringBoard", plist_new_bool(1));
+	plist_dict_set_item(mdict, "BackupProtocolVersion", plist_new_string("3.0"));
+	plist_dict_set_item(mdict, "BackupPreserveCameraRoll", plist_new_bool(1));
+	plist_dict_set_item(mdict, "BackupPreserveSettings", plist_new_bool(1));
+	plist_dict_set_item(mdict, "BackupManifestKey", manifest);
 
 	plist_t message = plist_new_array();
 	plist_array_append_item(message, plist_new_string("DLMessageProcessMessage"));
@@ -260,11 +260,11 @@ void* add_file(plist_t files, char* crap, uint64_t crap_size, char* domain, char
 	char* manifestkey = data_to_hex(sha1_of_data(pathdata, strlen(path)), 20);
 	printf("DEBUG: add_file\n");
 	plist_t dict = plist_new_dict();
-	plist_dict_insert_item(dict, "Domain", plist_new_string(domain));
-	plist_dict_insert_item(dict, "Path", plist_new_string(path));
-	plist_dict_insert_item(dict, "Greylist", plist_new_bool(0));
-	plist_dict_insert_item(dict, "Version", plist_new_string("3.0"));
-	plist_dict_insert_item(dict, "Data", plist_new_data(crap, crap_size));
+	plist_dict_set_item(dict, "Domain", plist_new_string(domain));
+	plist_dict_set_item(dict, "Path", plist_new_string(path));
+	plist_dict_set_item(dict, "Greylist", plist_new_bool(0));
+	plist_dict_set_item(dict, "Version", plist_new_string("3.0"));
+	plist_dict_set_item(dict, "Data", plist_new_data(crap, crap_size));
 	printf("DEBUG: Data size %llu:\n%s\n", crap_size, data_to_hex(crap, crap_size));
 
 	char* datahash = malloc(20);
@@ -277,22 +277,22 @@ void* add_file(plist_t files, char* crap, uint64_t crap_size, char* domain, char
 	SHA1_Final(datahash, &ctx);
 
 	plist_t manifest = plist_new_dict();
-	plist_dict_insert_item(manifest, "DataHash", plist_new_data(datahash, 20));
-	plist_dict_insert_item(manifest, "Domain", plist_new_string(domain));
-	plist_dict_insert_item(manifest, "FileLength", plist_new_uint(crap_size));
-	plist_dict_insert_item(manifest, "Group ID", plist_new_uint(gid));
-	plist_dict_insert_item(manifest, "User ID", plist_new_uint(uid));
-	plist_dict_insert_item(manifest, "Mode", plist_new_uint(mode));
-	plist_dict_insert_item(manifest, "ModificationTime", plist_new_date(2020964986UL, 0));
-	plist_dict_insert_item(files, manifestkey, manifest);
+	plist_dict_set_item(manifest, "DataHash", plist_new_data(datahash, 20));
+	plist_dict_set_item(manifest, "Domain", plist_new_string(domain));
+	plist_dict_set_item(manifest, "FileLength", plist_new_uint(crap_size));
+	plist_dict_set_item(manifest, "Group ID", plist_new_uint(gid));
+	plist_dict_set_item(manifest, "User ID", plist_new_uint(uid));
+	plist_dict_set_item(manifest, "Mode", plist_new_uint(mode));
+	plist_dict_set_item(manifest, "ModificationTime", plist_new_date(2020964986UL, 0));
+	plist_dict_set_item(files, manifestkey, manifest);
 
 	plist_t info = plist_new_dict();
 	char* templateo = (char*) malloc(0x20);
 	snprintf(templateo, 0x20, "/tmp/stuff.%06d", ++some_unique);
-	plist_dict_insert_item(info, "DLFileDest", plist_new_string(templateo));
-	plist_dict_insert_item(info, "Path", plist_new_string(path));
-	plist_dict_insert_item(info, "Version", plist_new_string("3.0"));
-	plist_dict_insert_item(info, "Crap", plist_new_data(crap, crap_size));
+	plist_dict_set_item(info, "DLFileDest", plist_new_string(templateo));
+	plist_dict_set_item(info, "Path", plist_new_string(path));
+	plist_dict_set_item(info, "Version", plist_new_string("3.0"));
+	plist_dict_set_item(info, "Crap", plist_new_data(crap, crap_size));
 
 	return info;
 }
@@ -307,11 +307,11 @@ void send_file(mobilebackup_client_t backup, plist_t info, send_file_stage stage
 	plist_get_data_val(plist_dict_get_item(info, "Crap"), &crap, &crap_size);
 	plist_dict_remove_item(info, "Crap");
 
-	plist_dict_insert_item(info, "DLFileAttributesKey", plist_new_dict());
-	plist_dict_insert_item(info, "DLFileSource", plist_new_string(dest));
-	plist_dict_insert_item(info, "DLFileIsEncrypted", plist_new_uint(0));
-	plist_dict_insert_item(info, "DLFileOffsetKey", plist_new_uint(0));
-	plist_dict_insert_item(info, "DLFileStatusKey", plist_new_uint(2));
+	plist_dict_set_item(info, "DLFileAttributesKey", plist_new_dict());
+	plist_dict_set_item(info, "DLFileSource", plist_new_string(dest));
+	plist_dict_set_item(info, "DLFileIsEncrypted", plist_new_uint(0));
+	plist_dict_set_item(info, "DLFileOffsetKey", plist_new_uint(0));
+	plist_dict_set_item(info, "DLFileStatusKey", plist_new_uint(2));
 
 	plist_t message = plist_new_array();
 	plist_array_append_item(message, plist_new_string("DLSendFile"));
@@ -331,8 +331,8 @@ static void restore_thread() {
 	if(lockdownd_error != LOCKDOWN_E_SUCCESS) {
 		fprintf(stderr, "ERROR: Cannot create lockdownd client\n");
 	}
-	
-	uint16_t port = 0;
+
+	lockdownd_service_descriptor_t port = 0;
 	mobilebackup_client_t backup = NULL;
 	printf("INFO: Starting MobileBackup service\n");
 
@@ -341,8 +341,8 @@ static void restore_thread() {
 		fprintf(stderr, "ERROR: Cannot start MobileBackup service\n");
 		return;
 	}
-	
-	if(lockdownd) { 
+
+	if(lockdownd) {
 		lockdownd_client_free(lockdownd);
 		lockdownd = NULL;
 	}
@@ -371,7 +371,7 @@ static void restore_thread() {
 }
 
 int main(int argc, char** argv) {
-	char uuid[41];
+	char udid[41];
 	int count = 0;
 	char **list = NULL;
 	idevice_error_t device_error = 0;
@@ -383,12 +383,12 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 
-	memset(uuid, '\0', 41);
-	memcpy(uuid, list[0], 40);
+	memset(udid, '\0', 41);
+	memcpy(udid, list[0], 40);
 	idevice_device_list_free(list);
 
 	printf("INFO: Opening device\n");
-	device_error = idevice_new(&device, uuid);
+	device_error = idevice_new(&device, udid);
 	if(device_error != IDEVICE_E_SUCCESS) {
 		if(device_error == IDEVICE_E_NO_DEVICE) {
 			fprintf(stderr, "ERROR: No device found\n");
